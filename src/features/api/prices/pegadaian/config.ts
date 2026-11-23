@@ -34,6 +34,8 @@ export function pegadaianPostProcess(raw: Record<string, unknown>): Record<strin
 	};
 }
 
+export const PEGADAIAN_BAR_PRICES_URL = 'https://sahabat.pegadaian.co.id/gold/prices/table';
+
 export const pegadaianConfig: JsonApiConfig = {
 	name: 'pegadaian',
 	displayName: 'Pegadaian',

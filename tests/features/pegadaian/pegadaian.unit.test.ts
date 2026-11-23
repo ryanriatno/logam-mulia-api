@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { getLatestPrice, pegadaianPostProcess } from '../../../src/features/api/prices/pegadaian/config';
+import { parseBarPrices } from '../../../src/features/api/prices/pegadaian/scrape';
 
 describe('pegadaian getLatestPrice', () => {
 	const sellSeries = {
@@ -112,5 +113,42 @@ describe('pegadaian pegadaianPostProcess', () => {
 	it('returns empty strings when data missing', () => {
 		const result = pegadaianPostProcess({});
 		expect(result).toEqual({ hargaJual: '', hargaBeli: '' });
+	});
+});
+
+describe('pegadaian parseBarPrices', () => {
+	const payload = {
+		responseCode: '2000000100',
+		data: [
+			{
+				namaVendor: 'UBS',
+				hargaMuliaDetails: [
+					{ berat: 5, hargaJual: 11636000, hargaBeli: null },
+					{ berat: 0.2, hargaJual: 0, hargaBeli: null },
+					{ berat: 1, hargaJual: 2373000, hargaBeli: null },
+				],
+			},
+			{
+				namaVendor: 'ANTAM',
+				hargaMuliaDetails: [{ berat: 1, hargaJual: 2543000, hargaBeli: 2300000 }],
+			},
+		],
+	};
+
+	it('maps each vendor/weight with a price to a row, sorted by weight', () => {
+		expect(parseBarPrices(payload)).toEqual([
+			{ material: 'gold', materialType: 'UBS', weight: 1, weightUnit: 'gram', sellPrice: 2373000, buybackPrice: null },
+			{ material: 'gold', materialType: 'UBS', weight: 5, weightUnit: 'gram', sellPrice: 11636000, buybackPrice: null },
+			{ material: 'gold', materialType: 'ANTAM', weight: 1, weightUnit: 'gram', sellPrice: 2543000, buybackPrice: 2300000 },
+		]);
+	});
+
+	it('skips vendors without a name or details', () => {
+		expect(parseBarPrices({ data: [{ hargaMuliaDetails: [{ berat: 1, hargaJual: 1 }] }, { namaVendor: 'X' }] })).toEqual([]);
+	});
+
+	it('returns empty array when data is not an array', () => {
+		expect(parseBarPrices({})).toEqual([]);
+		expect(parseBarPrices(null)).toEqual([]);
 	});
 });

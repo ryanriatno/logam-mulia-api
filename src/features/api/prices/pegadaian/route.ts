@@ -1,27 +1,16 @@
 import { Hono } from 'hono';
-import { AxiosScraper, createErrorResponse, defaultScrapingOptions, parseCurrency } from '../../../../lib';
+import { createErrorResponse, defaultScrapingOptions } from '../../../../lib';
 import { fetchOrCache } from '../../../../lib/services/price-service';
 import { pegadaianConfig } from './config';
+import { scrapePegadaian } from './scrape';
 
 import type { Bindings } from '../../../../types';
 const app = new Hono<{ Bindings: Bindings }>();
 
-const scraper = new AxiosScraper('pegadaian', pegadaianConfig);
-
 app.get('/', async (c) => {
 	const refresh = c.req.query('refresh') === 'true';
 	const result = await fetchOrCache(c.env, pegadaianConfig.name, { refresh }, () =>
-		scraper.scrape(
-			(raw) => ({
-				material: raw.material || 'gold',
-				materialType: raw.materialType || 'unknown',
-				buybackPrice: parseCurrency(raw.buybackPrice),
-				sellPrice: parseCurrency(raw.sellPrice),
-				weight: raw.weight ? Number(raw.weight) : 1,
-				weightUnit: raw.weightUnit || 'gr',
-			}),
-			defaultScrapingOptions,
-		),
+		scrapePegadaian(defaultScrapingOptions),
 	);
 
 	if (!result.success) {
